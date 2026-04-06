@@ -1,0 +1,33 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: devsecops-alerts
+  namespace: production
+spec:
+  groups:
+  - name: app.rules
+    rules:
+    - alert: AppDown
+      expr: up{job="devsecops-app"} == 0
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "App is down"
+    - alert: HighErrorRate
+      expr: rate(http_requests_total{job="devsecops-app",status=~"5.."}[5m]) > 0.05
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "High error rate"
+    - alert: HighLatency
+      expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="devsecops-app"}[5m])) > 0.5
+      for: 5m
+      labels:
+        severity: warning
+    - alert: HighMemory
+      expr: container_memory_usage_bytes{container="devsecops-app"} > 500000000
+      for: 5m
+      labels:
+        severity: warning

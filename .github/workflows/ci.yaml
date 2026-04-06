@@ -1,0 +1,85 @@
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --prefix app
+
+      - name: Run tests
+        run: npm test --prefix app
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 🔐 DockerHub Login
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # 🐳 Build Image
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/devsecops-app:${{ github.sha }} app
+          docker tag ${{ secrets.DOCKER_USERNAME }}/devsecops-app:${{ github.sha }} ${{ secrets.DOCKER_USERNAME }}/devsecops-app:latest
+
+      # 🔐 Trivy Scan
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@v2
+        with:
+          image-ref: ${{ secrets.DOCKER_USERNAME }}/devsecops-app:${{ github.sha }}
+
+      # 📦 Push Image
+      - name: Push Docker image
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/devsecops-app:${{ github.sha }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/devsecops-app:latest
+
+      # 🔍 SonarQube Scan
+      - name: SonarQube Scan
+        run: sonar-scanner -Dproject.settings=app/sonar-project.properties
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # ☸️ Setup kubectl
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: latest
+
+      # 🚀 Deploy to Kubernetes
+      - name: Deploy to cluster
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
