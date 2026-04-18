@@ -8,7 +8,7 @@ spec:
   project: default
 
   source:
-    repoURL: 'https://github.com/Aijazkhan123/devsecops-project.git'
+    repoURL: 'https://github.com/Aijazkhan123/my-devsecops-project.git'
     targetRevision: master   # ✅ fixed
     path: k8s
 
