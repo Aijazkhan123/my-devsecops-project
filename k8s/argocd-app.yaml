@@ -3,15 +3,19 @@ kind: Application
 metadata:
   name: devsecops-app
   namespace: argocd
+
 spec:
   project: default
+
   source:
     repoURL: 'https://github.com/Aijazkhan123/devsecops-project.git'
-    targetRevision: main
+    targetRevision: master   # ✅ fixed
     path: k8s
+
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: production
+
   syncPolicy:
     automated:
       prune: true
