@@ -48,7 +48,7 @@ jobs:
         with:
           projectBaseDir: ./app
           args: >
-            -Dsonar.projectKey=aijazkhan123_my-devsecops-project
+            -Dsonar.projectKey=my-devsecops-project
             -Dsonar.organization=aijazkhan123
             -Dsonar.sources=.
         env:
